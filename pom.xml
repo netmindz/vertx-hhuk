@@ -24,9 +24,6 @@
     module won't download and install those dependencies at run-time when they're first requested. -->
     <vertx.pullInDeps>false</vertx.pullInDeps>
 
-    <!-- Set createFatJar to true if you want to create a fat executable jar which contains the Vert.x binaries
-    along with the module so it can be run with java -jar <jarname> -->
-    <vertx.createFatJar>false</vertx.createFatJar>
 
     <!--Vertx module name-->
     <module.name>${project.groupId}~${project.artifactId}~${project.version}</module.name>
@@ -151,6 +148,12 @@
             <goals>
               <goal>pullInDeps</goal>
             </goals>
+          </execution>
+          <execution>
+              <phase>package</phase>
+              <goals>
+                  <goal>fatJar</goal>
+              </goals>
           </execution>
         </executions>
       </plugin>
