@@ -5,38 +5,41 @@
  */
 package net.netmindz;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import io.vertx.core.AbstractVerticle;
+import io.vertx.core.Handler;
+import io.vertx.core.eventbus.EventBus;
+import io.vertx.core.eventbus.Message;
+import io.vertx.core.json.JsonObject;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
+import java.util.Collection;
 import java.util.Date;
 import java.util.Map;
-import org.vertx.java.core.Handler;
-import org.vertx.java.core.eventbus.EventBus;
-import org.vertx.java.core.eventbus.Message;
-import org.vertx.java.core.json.JsonObject;
-import org.vertx.java.core.logging.Logger;
-import org.vertx.java.platform.Verticle;
 
 /**
  *
  * @author will
  */
-public class CurrentTrackVericle extends Verticle {
+public class CurrentTrackVericle extends AbstractVerticle {
     
 
     public void start() {
-        final Logger logger = container.logger();
+        final Logger logger = LoggerFactory.getLogger(this.getClass());
         
         logger.info("Listening for track changes");
 
         EventBus eb = vertx.eventBus();
 
-        Handler<Message> myHandler = new Handler<Message>() {
-            public void handle(Message message) {
+        Handler<Message<JsonObject>> myHandler = new Handler<Message<JsonObject>>() {
+            public void handle(Message<JsonObject> message) {
                 logger.info("I received a message " + message);
-                 for (Object chatter : vertx.sharedData().getSet("chat.room")) {
+                Collection<Object> chatters = vertx.sharedData().getLocalMap("chat.room").values();
+                logger.info("Sending track update to  " + chatters.size() +  " people in the chat room");
+                 for (Object chatter : chatters) {
                     try {
-                        JsonObject object = (JsonObject) message.body();
-                        Map<String, String> current =  vertx.sharedData().getMap("stream.metadata");
-                        String jsonOutput = "{\"sender\":\"HardHouseUK\", \"message\":\"Current track is " + current.get("StreamTitle") + "\",\"received\":\""+new Date()+"\"}";
+                        JsonObject object = message.body();
+                        Map<String, String> current =  vertx.sharedData().getLocalMap("stream.metadata");
+                        String jsonOutput = "{\"sender\":\"HardHouseUK\", \"message\":\"New track is " + current.get("StreamTitle") + "\",\"received\":\""+new Date()+"\"}";
                         logger.info("Sending message " + jsonOutput +  " to " + chatter);
                         vertx.eventBus().send(chatter.toString(), jsonOutput);
                     }
@@ -48,7 +51,7 @@ public class CurrentTrackVericle extends Verticle {
             }
         };
 
-        eb.registerHandler("stream.metadata", myHandler);
+        eb.consumer("stream.metadata", myHandler);
     }
 
 }

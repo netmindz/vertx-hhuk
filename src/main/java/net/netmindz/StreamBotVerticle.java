@@ -6,24 +6,26 @@
 
 package net.netmindz;
 
+import io.vertx.core.AbstractVerticle;
+import io.vertx.core.json.JsonObject;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 import java.net.URL;
 import java.util.Map;
 import java.util.Map.Entry;
 import net.netmindz.streambot.IcyStreamMeta;
 import net.netmindz.streambot.MetaDataListener;
-import org.vertx.java.core.json.JsonObject;
-import org.vertx.java.core.logging.Logger;
-import org.vertx.java.platform.Verticle;
+
 
 /**
  *
  * @author will
  */
-public class StreamBotVerticle extends Verticle {
+public class StreamBotVerticle extends AbstractVerticle {
     
     
     public void start() {
-        final Logger logger = container.logger();
+        final Logger logger = LoggerFactory.getLogger(this.getClass());
         try {
             logger.info("Loading stream");
             IcyStreamMeta stream = new IcyStreamMeta(new URL("http://streams.netmindz.net/hhuk.mp3"));
@@ -34,10 +36,10 @@ public class StreamBotVerticle extends Verticle {
                     logger.info("Updating metadata " + metaData);
                     JsonObject object =  new JsonObject();
                     for(Entry<String, String> entry : metaData.entrySet()) {
-                        object.putString(entry.getKey(), entry.getValue());
+                        object.put(entry.getKey(), entry.getValue());
                     }
                     vertx.eventBus().publish("stream.metadata", object);
-                    vertx.sharedData().getMap("stream.metadata").putAll(metaData);
+                    vertx.sharedData().getLocalMap("stream.metadata").putAll(metaData);
                 }
             });
             logger.info("Starting stream");

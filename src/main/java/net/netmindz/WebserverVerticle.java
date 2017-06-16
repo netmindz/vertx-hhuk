@@ -3,49 +3,54 @@ package net.netmindz;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import io.vertx.core.AbstractVerticle;
+import io.vertx.core.Handler;
+import io.vertx.core.buffer.Buffer;
+import io.vertx.core.eventbus.EventBus;
+import io.vertx.core.http.HttpServer;
+import io.vertx.core.http.ServerWebSocket;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 import java.io.File;
 import java.io.IOException;
 import java.util.Date;
 import java.util.Map;
 
-import org.vertx.java.core.Handler;
-import org.vertx.java.core.buffer.Buffer;
-import org.vertx.java.core.eventbus.EventBus;
-import org.vertx.java.core.http.HttpServerRequest;
-import org.vertx.java.core.http.RouteMatcher;
-import org.vertx.java.core.http.ServerWebSocket;
-import org.vertx.java.core.logging.Logger;
-import org.vertx.java.platform.Verticle;
 
-public class WebserverVerticle extends Verticle {
+public class WebserverVerticle extends AbstractVerticle {
 
 	@Override
 	public void start() {
 		final EventBus eventBus = vertx.eventBus();
-		final Logger logger = container.logger();
+		final Logger logger = LoggerFactory.getLogger(this.getClass());
 
-		RouteMatcher httpRouteMatcher = new RouteMatcher().get("/", new Handler<HttpServerRequest>() {
-			@Override
-			public void handle(final HttpServerRequest request) {
-				request.response().sendFile("web/chat.html");
-			}
-		}).get(".*\\.(css|js)$", new Handler<HttpServerRequest>() {
-			@Override
-			public void handle(final HttpServerRequest request) {
-				request.response().sendFile("web/" + new File(request.path()));
-			}
-		});
+                HttpServer server = vertx.createHttpServer();
+                
+                server.requestHandler(request -> {
+                    // Handle the request in here
+                    if(request.path().equals("/")) {
+                        logger.info("Index page requested");
+			request.response().sendFile("web/chat.html");
+                    }
+                    else if(request.path().endsWith(".css") || request.path().endsWith(".js")) {
+                        logger.info(request.path() + " requested");
+                        request.response().sendFile("web" + new File(request.path()));
+                    }
+                    else {
+                        logger.warn("Bad request " + request.path());
+                        request.response().setStatusCode(500).close();
+                    }
+                });
 
-		vertx.createHttpServer().requestHandler(httpRouteMatcher).listen(8088, "localhost");
 
-		vertx.createHttpServer().websocketHandler(new Handler<ServerWebSocket>() {
+		server.websocketHandler(new Handler<ServerWebSocket>() {
 			@Override
 			public void handle(final ServerWebSocket ws) {
 
 				final String id = ws.textHandlerID();
 				logger.info("registering new connection with id: " + id);
-				vertx.sharedData().getSet("chat.room").add(id);
-                                Map<String, String> current =  vertx.sharedData().getMap("stream.metadata");
+				vertx.sharedData().getLocalMap("chat.room").put(id, id);
+                                Map<String, String> current =  vertx.sharedData().getLocalMap("stream.metadata");
                                 String jsonOutput = "{\"sender\":\"HardHouseUK\",\"message\":\"Welcome to Hard House UK, The current track is " + current.get("StreamTitle") + "\",\"received\":\""+new Date()+"\"}";
                                 logger.info("Sending welcome message [" + jsonOutput + "]");
                                 eventBus.send(id, jsonOutput);
@@ -54,11 +59,11 @@ public class WebserverVerticle extends Verticle {
 					@Override
 					public void handle(final Void event) {
 						logger.info("un-registering connection with id: " + id);
-						vertx.sharedData().getSet("chat.room").remove(id);
+						vertx.sharedData().getLocalMap("chat.room").remove(id);
 					}
 				});
 
-				ws.dataHandler(new Handler<Buffer>() {
+				ws.handler(new Handler<Buffer>() {
 					@Override
 					public void handle(final Buffer data) {
 
@@ -68,7 +73,7 @@ public class WebserverVerticle extends Verticle {
 							((ObjectNode) rootNode).put("received", new Date().toString());
 							String jsonOutput = m.writeValueAsString(rootNode);
 							logger.info("json generated: " + jsonOutput);
-							for (Object chatter : vertx.sharedData().getSet("chat.room" )) {
+							for (Object chatter : vertx.sharedData().getLocalMap("chat.room" ).values()) {
 								eventBus.send((String) chatter, jsonOutput);
 							}
 						} catch (IOException e) {
