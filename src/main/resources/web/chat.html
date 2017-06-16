@@ -88,14 +88,13 @@ body {
 		$chatWindow.append($messageLine);
 	}
 	function sendMessage() {
-		var msg = '{"message":"' + $message.val() + '", "sender":"'
-				+ $nickName.val() + '", "received":""}';
+		var msg = '{"message":"' + $message.val() + '", "received":""}';
 		wsocket.send(msg);
 		$message.val('').focus();
 	}
 
 	function connectToChatserver() {
-		wsocket = new WebSocket(serviceLocation);
+		wsocket = new WebSocket(serviceLocation + "?nickname=" + $('#nickname').val());
 		wsocket.onmessage = onMessageReceived;
 	}
 
