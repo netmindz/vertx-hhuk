@@ -57,36 +57,45 @@ public class WebserverVerticle extends AbstractVerticle {
                                 String nickname;
                                 try {
                                     nickname = splitQuery(new URI(ws.uri())).get("nickname");
+                                    if(!nickname.matches("[a-zA-Z0-9_ ]+") || nickname.toLowerCase().contains("hardhouseuk") || nickname.toLowerCase().contains("hhuk")) {
+                                        logger.warn("Invalid nickname [" + nickname + "]");
+                                        ws.writeFinalTextFrame(getMessage("Invalid nickname"));
+                                        ws.close();
+                                        return;
+                                    }
                                 }
                                 catch(URISyntaxException | UnsupportedEncodingException e) {
                                     throw new RuntimeException(e);
                                 }
+                                
+                                LocalMap<Object, Object> room = vertx.sharedData().getLocalMap("chat.room");
+                                
 				logger.info("registering new connection with id: " + id + " for " + nickname);
-                                    vertx.sharedData().getLocalMap("chat.room").put(id, nickname);
+                                room.put(id, nickname);
                                     
                                 Map<String, String> current =  vertx.sharedData().getLocalMap("stream.metadata");
-                                String jsonOutput = "{\"sender\":\"HardHouseUK\",\"message\":\"Welcome to Hard House UK, The current track is " + current.get("StreamTitle") + "\",\"received\":\""+new Date()+"\"}";
+                                String jsonOutput = getMessage("Welcome to Hard House UK, The current track is " + current.get("StreamTitle"));
                                 logger.info("Sending welcome message [" + jsonOutput + "]");
                                 eventBus.send(id, jsonOutput);
-                                LocalMap<Object, Object> room = vertx.sharedData().getLocalMap("chat.room");
+                                
+                                
                                 if(room.size() > 1) {
-                                    jsonOutput = "{\"sender\":\"HardHouseUK\",\"message\":\"There are "+room.size()+" people in the chat room : "+room.values().toString()+"\",\"received\":\""+new Date()+"\"}";
+                                    jsonOutput = getMessage("There are "+room.size()+" people in the chat room : "+room.values().toString());
                                     logger.info("Sending count message [" + jsonOutput + "]");
                                     eventBus.send(id, jsonOutput);
                                 }
 
-                                jsonOutput = "{\"sender\":\"HardHouseUK\",\"message\":\""+nickname+" just joined chat\",\"received\":\""+new Date()+"\"}";
-                                for (Object chatter : room.keySet()) {
-                                    if(chatter.toString().equals(id)) continue;
-                                    eventBus.send((String) chatter, jsonOutput);
-                                }
+                                sendMessageToRoom(nickname+ " just joined chat", id);
 
                                 
 				ws.closeHandler(new Handler<Void>() {
 					@Override
 					public void handle(final Void event) {
 						logger.info("un-registering connection with id: " + id);
-						vertx.sharedData().getLocalMap("chat.room").remove(id);
+                                                LocalMap<String, String> room = vertx.sharedData().getLocalMap("chat.room");
+                                                String nickname = room.get(id);
+                                                sendMessageToRoom(nickname + " just left chat", id);
+                                                room.remove(id);
 					}
 				});
 
@@ -112,6 +121,21 @@ public class WebserverVerticle extends AbstractVerticle {
 				});
 
 			}
+
+                    private void sendMessageToRoom(String message, String idToExclude) {
+                        LocalMap<String, String> room = vertx.sharedData().getLocalMap("chat.room");
+                        String jsonOutput = getMessage(message);
+                        for (String chatter : room.keySet()) {
+                            if(chatter.equals(idToExclude)) continue;
+                            eventBus.send(chatter, jsonOutput);
+                        }
+                    }
+
+                    private String getMessage(String message) {
+                        String jsonOutput = "{\"sender\":\"HardHouseUK\",\"message\":\""+message+"\",\"received\":\""+new Date()+"\"}";
+                        return jsonOutput;
+                    }
+                    
 		}).listen(8090);
 	}
         
