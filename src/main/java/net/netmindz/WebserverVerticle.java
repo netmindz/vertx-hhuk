@@ -84,6 +84,11 @@ public class WebserverVerticle extends AbstractVerticle {
                                     logger.info("Sending count message [" + jsonOutput + "]");
                                     eventBus.send(id, jsonOutput);
                                 }
+                                else {
+                                    jsonOutput = getMessage("You are the only person in chat, but you can still see mix updates and others will hopefully join you soon");
+                                    logger.info("Sending welcome message [" + jsonOutput + "]");
+                                    eventBus.send(id, jsonOutput);
+                                }
 
                                 sendMessageToRoom(nickname+ " just joined chat", id);
 
