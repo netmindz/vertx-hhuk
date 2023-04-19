@@ -74,7 +74,7 @@ body {
 <link rel="shortcut icon" href="./resource/ico/favicon.png">
 <script>
 	var wsocket;
-	var serviceLocation = "ws://"+window.location.hostname+":8090/chat/";
+	var serviceLocation = "wss://"+window.location.hostname+"/chat/";
 	var $nickName;
 	var $message;
 	var $chatWindow;
@@ -118,14 +118,14 @@ body {
 		$('#enterRoom').click(function(evt) {
 			evt.preventDefault();
 			connectToChatserver();
-			$('.chat-wrapper h2').text('Chat # '+$nickName.val());
+			$('.chat-wrapper h2').text('HardHouseUK Chat # '+$nickName.val());
 			$('.chat-signin').hide();
 			$('.chat-wrapper').show();
 			$message.focus();
 		});
 		$('#do-chat').submit(function(evt) {
 			evt.preventDefault();
-			sendMessage()
+			sendMessage();
 		});
 		
 		$('#leave-room').click(function(){
