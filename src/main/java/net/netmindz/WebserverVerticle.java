@@ -73,12 +73,7 @@ public class WebserverVerticle extends AbstractVerticle {
 				logger.info("registering new connection with id: " + id + " for " + nickname);
                                 room.put(id, nickname);
                                     
-                                Map<String, String> current =  vertx.sharedData().getLocalMap("stream.metadata");
-                                String jsonOutput = getMessage("Welcome to Hard House UK, The current track is " + current.get("StreamTitle"));
-                                logger.info("Sending welcome message [" + jsonOutput + "]");
-                                eventBus.send(id, jsonOutput);
-                                
-                                
+                                String jsonOutput;
                                 if(room.size() > 1) {
                                     jsonOutput = getMessage("There are "+room.size()+" people in the chat room : "+room.values().toString());
                                     logger.info("Sending count message [" + jsonOutput + "]");
@@ -89,6 +84,13 @@ public class WebserverVerticle extends AbstractVerticle {
                                     logger.info("Sending welcome message [" + jsonOutput + "]");
                                     eventBus.send(id, jsonOutput);
                                 }
+                                
+                                Map<String, String> current =  vertx.sharedData().getLocalMap("stream.metadata");
+                                jsonOutput = getMessage("Welcome to Hard House UK, The current track is " + current.get("StreamTitle"));
+                                logger.info("Sending welcome message [" + jsonOutput + "]");
+                                eventBus.send(id, jsonOutput);
+                                
+                                
 
                                 sendMessageToRoom(nickname+ " just joined chat", id);
 

@@ -43,13 +43,13 @@ public class StreamBotVerticle extends AbstractVerticle {
             new Thread(() -> {
                 try {
                     stream.refreshMeta();
+                    logger.warn("End of stream");
                 }
                 catch(IOException ioe) {
                     logger.error(ioe);
                     throw new RuntimeException(ioe);
                 }
             }).start();
-            logger.info("End of stream");
         }
         catch(Exception e) {
             logger.error(e.getMessage(), e);

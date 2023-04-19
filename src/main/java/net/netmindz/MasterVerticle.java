@@ -25,7 +25,7 @@ public class MasterVerticle extends AbstractVerticle {
         vertx.deployVerticle("net.netmindz.CurrentTrackVericle");
         
         logger.info("Starting StreamBotVerticle");
-        vertx.deployVerticle("net.netmindz.StreamBotVerticle", new DeploymentOptions().setWorker(true).setMaxWorkerExecuteTime(Long.MAX_VALUE));
+        vertx.deployVerticle("net.netmindz.StreamBotVerticle", new DeploymentOptions().setWorker(true));
 
         logger.info("Starting WebserverVerticle");
         vertx.deployVerticle("net.netmindz.WebserverVerticle");
